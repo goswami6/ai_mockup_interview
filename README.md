@@ -1,8 +1,28 @@
-# Build and Deploy a Modern Next 13 Website With Framer Motion & Tailwind CSS
+# 🧠 AI Mock Interview Website
 
-### [Live Site](https://metaverse-sage-psi.vercel.app/)
+🚀 **AI-powered mock interview platform** using **Next.js 14**, **Neon Database**, and **face-api.js** for facial expression detection.  
 
-![Chat Application](https://i.ibb.co/sbSHWH0/Thumbnail-1.png)
+## 📌 Features
+- 🎤 **Realistic AI-driven interview experience**
+- 📷 **Facial expression analysis** using `face-api.js`
+- 📝 **Feedback & Scoring** based on answers
+- 🗂 **User authentication** with `Auth0`
+- 📊 **Dashboard to manage past interviews**
 
-### [🌟 Become a top 1% Next.js 13 developer in only one course](https://jsmastery.pro/next13)
-### [🚀 Land your dream programming job in 6 months](https://jsmastery.pro/masterclass)
+---
+
+## 🛠️ Tech Stack
+- **Frontend:** Next.js 14, React, GSAP, Framer Motion  
+- **Backend:** Next.js API routes, Neon PostgreSQL  
+- **AI & Analysis:** `face-api.js`  
+- **Authentication:** Auth0  
+- **Database ORM:** Drizzle ORM  
+
+---
+
+## 🚀 Getting Started  
+
+### 🔹 1. Clone the Repo  
+```bash
+git clone https://github.com/your-username/your-repo.git
+cd your-repo
