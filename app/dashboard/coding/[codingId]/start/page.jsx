@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { db } from "../../../utils/db";
-import { CodingQuestions } from "../../../utils/schema";
+// import { db } from "../../../utils/db";
+import { CodingQuestions } from "../../../../../utils/schema";
 import Link from "next/link";
+import { db } from "../../../../../utils/db";
 
 const DisplayQuestions = () => {
   const { interviewId } = useParams();
