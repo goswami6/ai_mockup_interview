@@ -35,43 +35,56 @@ const AddNewInterview = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    const newErrors = {};
-    if (!formData.jobRole.trim()) newErrors.jobRole = "Job role is required";
-    if (!formData.description.trim()) newErrors.description = "Description is required";
-    if (!formData.experience.trim()) newErrors.experience = "Experience is required";
-    setErrors(newErrors);
+  try {
+    // Construct prompt
+    const prompt = `Job position: ${jobPosition}, Job Description: ${jobDesc}, Years of Experience: ${jobExperience}. Based on these, provide ${process.env.NEXT_PUBLIC_INTERVIEW_QUESTION_COUNT} interview questions along with answers in JSON format. Use "question" and "answer" as keys.`;
 
-    if (Object.keys(newErrors).length > 0) return;
+    // Send message to Gemini
+    const result = await chatSession.sendMessage(prompt);
+    const rawText = result.response.text();
+    const cleanedText = rawText.replace("```json", "").replace("```", "").trim();
 
+    // Parse response
+    let parsedJSON;
     try {
-      setLoading(true);
-
-      const prompt = `Generate a list of 5 interview questions for the role of ${formData.jobRole}, requiring ${formData.experience} years of experience. Job description: ${formData.description}`;
-      const questions = await chatSession(prompt); // Ensure this returns an array of questions
-
-      const newInterview = {
-       mockId:uuidv4(),
-            jsonMockResp:MockJsonResp,
-            jobPosition:jobPosition,
-            jobDesc:jobDesc,
-            jobExperience:jobExperience,
-            createdBy:user?.primaryEmailAddress?.emailAddress,
-            createdAt:moment().format('DD-MM-yyyy')
-      };
-
-      await db.insert(MockInterview).values(newInterview);
-
-      router.push("/interview-dashboard"); // or wherever your dashboard route is
-    } catch (error) {
-      console.error("Interview generation failed:", error);
-    } finally {
-      setLoading(false);
-      setOpenDialog(false);
+      parsedJSON = JSON.parse(cleanedText);
+    } catch (err) {
+      console.error("Failed to parse Gemini response:", err);
+      console.log("Gemini returned:", cleanedText);
+      return;
     }
-  };
+
+    // Store response in DB
+    const response = await db.insert(MockInterview).values({
+      mockId: uuidv4(),
+      jsonMockResp: JSON.stringify(parsedJSON), // make sure this is stored as text
+      jobPosition,
+      jobDesc,
+      jobExperience,
+      createdBy: user?.primaryEmailAddress?.emailAddress || "",
+      createdAt: moment().format("DD-MM-YYYY"),
+    }).returning({
+      mockId: MockInterview.mockId,
+    });
+
+    if (response?.length > 0) {
+      console.log("Inserted interview ID:", response[0].mockId);
+      setOpenDailog(false);
+      router.push(`/dashboard/interview/${response[0].mockId}`);
+    } else {
+      console.error("Interview insertion failed.");
+    }
+  } catch (err) {
+    console.error("Interview generation failed:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <>
