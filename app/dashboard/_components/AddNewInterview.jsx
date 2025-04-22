@@ -23,68 +23,78 @@ const AddNewInterview = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user } = useUser();
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     jobRole: "",
     description: "",
     experience: "",
   });
+
   const [errors, setErrors] = useState({});
-  const router = useRouter();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.jobRole) newErrors.jobRole = "Job Role is required";
+    if (!formData.description) newErrors.description = "Job Description is required";
+    if (!formData.experience) newErrors.experience = "Experience is required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-  try {
-    // Construct prompt
-    const prompt = `Job position: ${jobPosition}, Job Description: ${jobDesc}, Years of Experience: ${jobExperience}. Based on these, provide ${process.env.NEXT_PUBLIC_INTERVIEW_QUESTION_COUNT} interview questions along with answers in JSON format. Use "question" and "answer" as keys.`;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
-    // Send message to Gemini
-    const result = await chatSession.sendMessage(prompt);
-    const rawText = result.response.text();
-    const cleanedText = rawText.replace("```json", "").replace("```", "").trim();
+    setLoading(true);
+    const { jobRole, description, experience } = formData;
 
-    // Parse response
-    let parsedJSON;
     try {
-      parsedJSON = JSON.parse(cleanedText);
+      const prompt = `Job position: ${jobRole}, Job Description: ${description}, Years of Experience: ${experience}. Based on these, provide ${process.env.NEXT_PUBLIC_INTERVIEW_QUESTION_COUNT} interview questions along with answers in JSON format. Use "question" and "answer" as keys.`;
+
+      const result = await chatSession.sendMessage(prompt);
+      const rawText = await result.response.text();
+      const cleanedText = rawText.replace("```json", "").replace("```", "").trim();
+
+      let parsedJSON;
+      try {
+        parsedJSON = JSON.parse(cleanedText);
+      } catch (err) {
+        console.error("Failed to parse Gemini response:", err);
+        console.log("Gemini returned:", cleanedText);
+        return;
+      }
+
+      const response = await db
+        .insert(MockInterview)
+        .values({
+          mockId: uuidv4(),
+          jsonMockResp: JSON.stringify(parsedJSON),
+          jobPosition: jobRole,
+          jobDesc: description,
+          jobExperience: experience,
+          createdBy: user?.primaryEmailAddress?.emailAddress || "",
+          createdAt: moment().format("DD-MM-YYYY"),
+        })
+        .returning({ mockId: MockInterview.mockId });
+
+      if (response?.length > 0) {
+        console.log("Inserted interview ID:", response[0].mockId);
+        setOpenDialog(false);
+        router.push(`/dashboard/interview/${response[0].mockId}`);
+      } else {
+        console.error("Interview insertion failed.");
+      }
     } catch (err) {
-      console.error("Failed to parse Gemini response:", err);
-      console.log("Gemini returned:", cleanedText);
-      return;
+      console.error("Interview generation failed:", err);
+    } finally {
+      setLoading(false);
     }
-
-    // Store response in DB
-    const response = await db.insert(MockInterview).values({
-      mockId: uuidv4(),
-      jsonMockResp: JSON.stringify(parsedJSON), // make sure this is stored as text
-      jobPosition,
-      jobDesc,
-      jobExperience,
-      createdBy: user?.primaryEmailAddress?.emailAddress || "",
-      createdAt: moment().format("DD-MM-YYYY"),
-    }).returning({
-      mockId: MockInterview.mockId,
-    });
-
-    if (response?.length > 0) {
-      console.log("Inserted interview ID:", response[0].mockId);
-      setOpenDailog(false);
-      router.push(`/dashboard/interview/${response[0].mockId}`);
-    } else {
-      console.error("Interview insertion failed.");
-    }
-  } catch (err) {
-    console.error("Interview generation failed:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <>
@@ -178,9 +188,7 @@ const AddNewInterview = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Animations & Styles */}
       <style jsx>{`
-        /* Zigzag Border Animation */
         @keyframes borderAnimation {
           0% { border-color: transparent; }
           50% { border-color: black; }
@@ -191,7 +199,6 @@ const AddNewInterview = () => {
           animation: borderAnimation 2s infinite alternate ease-in-out;
         }
 
-        /* Pop-up Animation */
         @keyframes popupScale {
           from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
           to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
