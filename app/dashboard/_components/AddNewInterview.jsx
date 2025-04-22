@@ -53,13 +53,13 @@ const AddNewInterview = () => {
       const questions = await chatSession(prompt); // Ensure this returns an array of questions
 
       const newInterview = {
-        id: uuidv4(),
-        userId: user?.id,
-        role: formData.jobRole,
-        description: formData.description,
-        experience: formData.experience,
-        date: moment().format("YYYY-MM-DD"),
-        questions,
+       mockId:uuidv4(),
+            jsonMockResp:MockJsonResp,
+            jobPosition:jobPosition,
+            jobDesc:jobDesc,
+            jobExperience:jobExperience,
+            createdBy:user?.primaryEmailAddress?.emailAddress,
+            createdAt:moment().format('DD-MM-yyyy')
       };
 
       await db.insert(MockInterview).values(newInterview);
