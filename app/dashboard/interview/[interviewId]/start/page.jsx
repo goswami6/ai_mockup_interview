@@ -14,7 +14,7 @@ function StartInterview({ params }) {
   const [interviewData, setInterviewData] = useState(null);
   const [mockInterviewQuestion, setMockInterviewQuestion] = useState([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [answeredQuestions, setAnsweredQuestions] = useState([]);
+  const [answeredQuestions, setAnsweredQuestions] = useState(new Set()); // Using Set here
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState(null);
   const [userName, setUserName] = useState("User");
@@ -198,14 +198,21 @@ function StartInterview({ params }) {
 
       {/* Navigation Buttons */}
       <div className="flex justify-end gap-6 bg-white p-4 text-white">
-      {activeQuestionIndex>0&&  
-          <Button onClick={()=>setActiveQuestionIndex(activeQuestionIndex-1)}>Previous Question</Button>}
-          {activeQuestionIndex!=mockInterviewQuestion?.length-1&& 
-           <Button onClick={()=>setActiveQuestionIndex(activeQuestionIndex+1)}>Next Question</Button>}
-          {activeQuestionIndex==mockInterviewQuestion?.length-1&&  
-          <Link href={'/dashboard/interview/'+interviewData?.mockId+"/feedback"}>
-          <Button >End Interview</Button>
-          </Link>}
+        {activeQuestionIndex > 0 && (
+          <Button onClick={() => setActiveQuestionIndex(activeQuestionIndex - 1)}>
+            Previous Question
+          </Button>
+        )}
+        {activeQuestionIndex !== mockInterviewQuestion?.length - 1 && (
+          <Button onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}>
+            Next Question
+          </Button>
+        )}
+        {activeQuestionIndex === mockInterviewQuestion?.length - 1 && (
+          <Link href={`/dashboard/interview/${interviewData?.mockId}/feedback`}>
+            <Button>End Interview</Button>
+          </Link>
+        )}
       </div>
     </div>
   );

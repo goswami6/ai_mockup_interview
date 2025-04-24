@@ -24,7 +24,3 @@ const {
       generationConfig,
       
     });
-  
-   
-  
-  

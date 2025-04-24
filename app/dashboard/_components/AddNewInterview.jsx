@@ -7,70 +7,119 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { LoaderCircle, X } from "lucide-react"; // Close Icon
-import { Button } from "@/components/ui/button"; 
+import { LoaderCircle, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { chatSession } from "../../../utils/GeminiAIModel";
 import { db } from "../../../utils/db";
 import { MockInterview } from "../../../utils/schema";
-import { v4 as uuidv4 } from 'uuid';
-import { useUser } from '@clerk/nextjs'
+import { v4 as uuidv4 } from "uuid";
+import { useUser } from "@clerk/nextjs";
 import moment from "moment";
 import { useRouter } from "next/navigation";
-
 
 const AddNewInterview = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [jsonResponse,setJsonResponse]=useState([]);
-  const {user}=useUser();
+  const { user } = useUser();
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     jobRole: "",
     description: "",
     experience: "",
   });
-  const [errors, setErrors] = useState({});
-  const router = useRouter();
 
-  // Handle Input Change
+  const [errors, setErrors] = useState({});
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.jobRole) newErrors.jobRole = "Job Role is required";
+    if (!formData.description) newErrors.description = "Job Description is required";
+    if (!formData.experience) newErrors.experience = "Experience is required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setLoading(true);
+    const { jobRole, description, experience } = formData;
+
+    try {
+      const prompt = `Job position: ${jobRole}, Job Description: ${description}, Years of Experience: ${experience}. Based on these, provide ${process.env.NEXT_PUBLIC_INTERVIEW_QUESTION_COUNT} interview questions along with answers in JSON format. Use "question" and "answer" as keys.`;
+
+      const result = await chatSession.sendMessage(prompt);
+      const rawText = await result.response.text();
+      const cleanedText = rawText.replace("```json", "").replace("```", "").trim();
+
+      let parsedJSON;
+      try {
+        parsedJSON = JSON.parse(cleanedText);
+      } catch (err) {
+        console.error("Failed to parse Gemini response:", err);
+        console.log("Gemini returned:", cleanedText);
+        return;
+      }
+
+      const response = await db
+        .insert(MockInterview)
+        .values({
+          mockId: uuidv4(),
+          jsonMockResp: JSON.stringify(parsedJSON),
+          jobPosition: jobRole,
+          jobDesc: description,
+          jobExperience: experience,
+          createdBy: user?.primaryEmailAddress?.emailAddress || "",
+          createdAt: moment().format("DD-MM-YYYY"),
+        })
+        .returning({ mockId: MockInterview.mockId });
+
+      if (response?.length > 0) {
+        console.log("Inserted interview ID:", response[0].mockId);
+        setOpenDialog(false);
+        router.push(`/dashboard/interview/${response[0].mockId}`);
+      } else {
+        console.error("Interview insertion failed.");
+      }
+    } catch (err) {
+      console.error("Interview generation failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
-      {/* Add New Interview Button */}
       <div
         className="relative flex aspect-[2/1] w-full max-w-md flex-col items-center justify-center 
           rounded-xl border border-gray-300 p-8 text-center bg-gradient-to-r from-gray-100 to-gray-200 overflow-hidden 
           shadow-lg cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-105"
         onClick={() => setOpenDialog(true)}
       >
-        {/* Decorative Zigzag Border */}
         <div className="absolute inset-0 rounded-xl border-2 border-dashed border-gray-500 animate-border"></div>
-
         <h2 className="font-semibold text-gray-800 text-lg transition-all duration-300 hover:scale-105">
           + Add New Interview
         </h2>
       </div>
 
-      {/* Popup Dialog */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         {openDialog && <div className="fixed inset-0 bg-black bg-opacity-40 z-40"></div>}
-
         <DialogContent className="fixed z-50 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
           bg-white p-6 rounded-xl shadow-2xl border border-gray-200 max-w-lg transition-all duration-300 scale-95 animate-popup">
-          
-          {/* Close Button */}
           <button
             className="absolute top-3 right-3 text-gray-600 hover:text-black"
             onClick={() => setOpenDialog(false)}
           >
             <X size={20} />
           </button>
-
-          {/* Header */}
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-gray-900">Create New Interview</DialogTitle>
           </DialogHeader>
@@ -78,9 +127,7 @@ const AddNewInterview = () => {
           <DialogDescription>
             <h2 className="text-gray-700">Fill in the details to generate interview questions</h2>
 
-            {/* Form Starts Here */}
-            <form onSubmit={() => {}} className="mt-5">
-              {/* Job Role */}
+            <form onSubmit={handleSubmit} className="mt-5">
               <div className="flex flex-col">
                 <label className="text-left text-gray-700 font-medium mb-2">Job Role</label>
                 <Input
@@ -93,7 +140,6 @@ const AddNewInterview = () => {
                 {errors.jobRole && <p className="text-red-500 text-sm">{errors.jobRole}</p>}
               </div>
 
-              {/* Job Description */}
               <div className="mt-5 flex flex-col">
                 <label className="text-left text-gray-700 font-medium mb-2">Job Description</label>
                 <Textarea
@@ -106,7 +152,6 @@ const AddNewInterview = () => {
                 {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
               </div>
 
-              {/* Experience */}
               <div className="mt-5 flex flex-col">
                 <label className="text-left text-gray-700 font-medium mb-2">Years of Experience</label>
                 <Input
@@ -120,19 +165,22 @@ const AddNewInterview = () => {
                 {errors.experience && <p className="text-red-500 text-sm">{errors.experience}</p>}
               </div>
 
-              {/* Buttons */}
               <div className="flex gap-5 justify-end mt-6">
-                <Button className="border border-gray-300 bg-white text-black px-4 py-2 hover:bg-gray-200"
+                <Button
+                  className="border border-gray-300 bg-white text-black px-4 py-2 hover:bg-gray-200"
                   type="button"
-                  onClick={() => setOpenDialog(false)}>
+                  onClick={() => setOpenDialog(false)}
+                >
                   Cancel
                 </Button>
                 <Button className="bg-black text-white px-4 py-2 hover:bg-gray-800" type="submit" disabled={loading}>
                   {loading ? (
                     <>
-                      <LoaderCircle className="animate-spin" /> Generating...
+                      <LoaderCircle className="animate-spin mr-2" /> Generating...
                     </>
-                  ) : "Start Interview"}
+                  ) : (
+                    "Start Interview"
+                  )}
                 </Button>
               </div>
             </form>
@@ -140,9 +188,7 @@ const AddNewInterview = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Animations & Styles */}
       <style jsx>{`
-        /* Zigzag Border Animation */
         @keyframes borderAnimation {
           0% { border-color: transparent; }
           50% { border-color: black; }
@@ -153,7 +199,6 @@ const AddNewInterview = () => {
           animation: borderAnimation 2s infinite alternate ease-in-out;
         }
 
-        /* Pop-up Animation */
         @keyframes popupScale {
           from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
           to { transform: translate(-50%, -50%) scale(1); opacity: 1; }

@@ -27,3 +27,25 @@
 git clone https://github.com/your-username/your-repo.git
 cd your-repo
 
+### 🔹 2. Install Dependencies  
+```bash
+npm install
+
+### 🔹 3. Set Up Environment Variables  
+Create a `.env.local` file and add your credentials:  
+
+```env
+DATABASE_URL=your-neon-database-url
+NEXT_PUBLIC_AUTH0_DOMAIN=your-auth0-domain
+NEXT_PUBLIC_AUTH0_CLIENT_ID=your-auth0-client-id
+NEXT_PUBLIC_AUTH0_CLIENT_SECRET=your-auth0-client-secret
+NEXT_PUBLIC_FACE_API_URL=your-face-api-url
+
+### 🔹 4. Run the Development Server  
+
+```bash
+npm run dev
+
+
+
+

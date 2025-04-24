@@ -30,9 +30,23 @@ const Header = () => {
     Questions
   </li>
 </Link>
-            <li className={`hover:text-primary hover:font-bold transition-all cursor-pointer ${path=='/quies'&&'text-primary font-bold'}`}>Quiz</li>
-            <li className={`hover:text-primary hover:font-bold transition-all cursor-pointer ${path=='/company'&&'text-primary font-bold'}`}>Companies</li>
-            <li className={`hover:text-primary hover:font-bold transition-all cursor-pointer ${path=='/how'&&'text-primary font-bold'}`}>How it works?</li>
+<Link href="/dashboard/quiz">
+  <li
+    className={`hover:text-primary hover:font-bold transition-all cursor-pointer 
+      ${path === '/dashboard/quiz' && 'text-primary font-bold'}`}
+  >
+    Quiz
+  </li>
+</Link>
+            {/* <li className={`hover:text-primary hover:font-bold transition-all cursor-pointer ${path=='/company'&&'text-primary font-bold'}`}>Companies</li> */}
+            <Link href="/dashboard/review">
+  <li
+    className={`hover:text-primary hover:font-bold transition-all cursor-pointer 
+      ${path === '/dashboard/review' && 'text-primary font-bold'}`}
+  >
+    Review
+  </li>
+</Link>
         </ul>
         <UserButton/>
       
